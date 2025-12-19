@@ -21,6 +21,15 @@ build:
 provider:
   name: aws
   runtime: nodejs22.x
+  httpApi:
+    cors: true
+    authorizers:
+      supabaseJwtAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: ${env:SUPABASE_URL}
+        audience:
+          - authenticated
 
 functions:
   fetchFollowings:
@@ -33,16 +42,11 @@ functions:
       UPSTASH_SEARCH_REST_URL: ${env:UPSTASH_SEARCH_REST_URL}
       UPSTASH_SEARCH_REST_TOKEN: ${env:UPSTASH_SEARCH_REST_TOKEN}
     events:
-      - http:
-          cors:
-            origin: "*"
+      - httpApi:
           method: GET
           path: /followings/platforms/{platformName}/users/{username}
-          request:
-            parameters:
-              paths:
-                platformName: true
-                username: true
+          authorizer: 
+            name: supabaseJwtAuthorizer
 
   fetchContents:
     handler: handlers/fetch-contents.handler
@@ -50,15 +54,9 @@ functions:
       UPSTASH_REDIS_REST_URL: ${env:UPSTASH_REDIS_REST_URL}
       UPSTASH_REDIS_REST_TOKEN: ${env:UPSTASH_REDIS_REST_TOKEN}
     events:
-      - http:
-          cors:
-            origin: "*"
+      - httpApi:
           method: GET
           path: /contents/platforms/{platformName}/users/{username}
-          request:
-            parameters:
-              paths:
-                platformName: true
-                username: true
-              querystrings:
-                since: false
+          authorizer: 
+            name: supabaseJwtAuthorizer
+
