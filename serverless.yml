@@ -16,6 +16,7 @@ build:
       - "@upstash/redis"
       - fast-xml-parser
       - zod/v4-mini
+      - "@upstash/search"
 
 provider:
   name: aws
@@ -29,9 +30,12 @@ functions:
       UPSTASH_REDIS_REST_URL: ${env:UPSTASH_REDIS_REST_URL}
       UPSTASH_REDIS_REST_TOKEN: ${env:UPSTASH_REDIS_REST_TOKEN}
       PUPPETEER_CHROMIUM_PATH: ${env:PUPPETEER_CHROMIUM_PATH}
+      UPSTASH_SEARCH_REST_URL: ${env:UPSTASH_SEARCH_REST_URL}
+      UPSTASH_SEARCH_REST_TOKEN: ${env:UPSTASH_SEARCH_REST_TOKEN}
     events:
       - http:
-          cors: true
+          cors:
+            origin: "*"
           method: GET
           path: /followings/platforms/{platformName}/users/{username}
           request:
@@ -47,7 +51,8 @@ functions:
       UPSTASH_REDIS_REST_TOKEN: ${env:UPSTASH_REDIS_REST_TOKEN}
     events:
       - http:
-          cors: true
+          cors:
+            origin: "*"
           method: GET
           path: /contents/platforms/{platformName}/users/{username}
           request:
