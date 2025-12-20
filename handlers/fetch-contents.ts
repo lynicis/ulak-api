@@ -4,7 +4,7 @@ import {
     PlatformKeys,
     SinceDate,
 } from "../contentFetcherStrategies/contentStrategyFactory";
-import { APIGatewayEvent } from "aws-lambda";
+import { APIGatewayProxyHandler } from "aws-lambda";
 import { Redis } from "@upstash/redis";
 import { z } from "zod/v4-mini";
 
@@ -18,7 +18,7 @@ const schema = z.object({
     username: z.string(),
 });
 
-const handler = async (event: APIGatewayEvent) => {
+export const handler: APIGatewayProxyHandler = async (event) => {
     const { success, error: validationError } = await schema.safeParseAsync(event.pathParameters);
     if (!success) {
         return {
@@ -56,8 +56,4 @@ const handler = async (event: APIGatewayEvent) => {
         statusCode: 200,
         body: JSON.stringify({ contents, fetchedAt }),
     };
-};
-
-export {
-    handler,
 };

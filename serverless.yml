@@ -5,7 +5,7 @@ plugins:
   - serverless-offline
 
 build:
-  esbuild: 
+  esbuild:
     bundle: true
     external:
       - "@sparticuz/chromium"
@@ -17,36 +17,50 @@ build:
       - fast-xml-parser
       - zod/v4-mini
       - "@upstash/search"
+      - "@supabase/supabase-js"
+      - "@aws-sdk/client-ses"
+      - "@react-email/components"
+      - react
+      - react-dom
 
 provider:
   name: aws
   runtime: nodejs22.x
-  httpApi:
-    cors: true
-    authorizers:
-      supabaseJwtAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: ${env:SUPABASE_URL}
-        audience:
-          - authenticated
+
+params:
+  default:
+    corsOrigin: "*"
+  dev:
+    corsOrigin: "https://www.ulak.io"
 
 functions:
+  supabaseAuthorizer:
+    handler: handlers/supabase-authorizer.handler
+    environment:
+      SUPABASE_AUTH_API_URL: ${env:SUPABASE_AUTH_API_URL}
+
   fetchFollowings:
     handler: handlers/fetch-followings.handler
     timeout: 60
     environment:
       UPSTASH_REDIS_REST_URL: ${env:UPSTASH_REDIS_REST_URL}
       UPSTASH_REDIS_REST_TOKEN: ${env:UPSTASH_REDIS_REST_TOKEN}
-      PUPPETEER_CHROMIUM_PATH: ${env:PUPPETEER_CHROMIUM_PATH}
       UPSTASH_SEARCH_REST_URL: ${env:UPSTASH_SEARCH_REST_URL}
       UPSTASH_SEARCH_REST_TOKEN: ${env:UPSTASH_SEARCH_REST_TOKEN}
     events:
-      - httpApi:
+      - http:
           method: GET
           path: /followings/platforms/{platformName}/users/{username}
-          authorizer: 
-            name: supabaseJwtAuthorizer
+          cors:
+            origin: ${param:corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: supabaseAuthorizer
+            type: token
+            identitySource: method.request.header.Authorization
 
   fetchContents:
     handler: handlers/fetch-contents.handler
@@ -54,9 +68,48 @@ functions:
       UPSTASH_REDIS_REST_URL: ${env:UPSTASH_REDIS_REST_URL}
       UPSTASH_REDIS_REST_TOKEN: ${env:UPSTASH_REDIS_REST_TOKEN}
     events:
-      - httpApi:
+      - http:
           method: GET
           path: /contents/platforms/{platformName}/users/{username}
-          authorizer: 
-            name: supabaseJwtAuthorizer
+          cors:
+            origin: ${param:corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: supabaseAuthorizer
+            type: token
+            identitySource: method.request.header.Authorization
 
+  send-emails:
+    handler: handlers/send-emails.handler
+    environment:
+      SUPABASE_URL: ${env:SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${env:SUPABASE_SERVICE_ROLE_KEY}
+      BASE_URL: ${env:BASE_URL}
+      SES_FROM_EMAIL: ${env:SES_FROM_EMAIL}
+      WEBSITE_URL: ${env:WEBSITE_URL}
+    events:
+      - schedule: rate(1 hour)
+
+  getEmailAnalytics:
+    handler: handlers/get-email-analytics.handler
+    environment:
+      SUPABASE_URL: ${env:SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${env:SUPABASE_SERVICE_ROLE_KEY}
+      WEBSITE_URL: ${env:WEBSITE_URL}
+    events:
+      - http:
+          method: GET
+          path: /analytics/emails
+          cors:
+            origin: ${param:corsOrigin}
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: supabaseAuthorizer
+            type: token
+            identitySource: method.request.header.Authorization
